@@ -22,104 +22,103 @@ local RunService = SafeGetService("RunService")
 local Players = SafeGetService("Players")
 local Player = Players.LocalPlayer
 local CollectionService = SafeGetService("CollectionService")
-local TeleportService = SafeGetService("TeleportService")
-
 local network = {}
 local wait = task.wait
 local spawn = task.spawn
+local TeleportService = SafeGetService("TeleportService")
 
 local states = {
 	server_bypass = false;
 	mod_kick = false;
-	mod_notifier = false;
+	mod_notifer = false;
 	ddos_send_count = 20;
 	fire_rate = 800;
-	insta_kill_send_count = 20;
+	insta_kill_send_count = 20;	
 	avoid = false;
 	tesla_spam = false;
 	infinite_run = false;
-}
+};
 
--- SERVER BYPASS
 local server_bypass = @native function(value: boolean)
 	if value then
-		if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then return end
-		local humanoid_root: Part = Player.Character:FindFirstChild("HumanoidRootPart")
+		if not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") then
+			return;
+		end;
+		local humanoid_root: Part = Player.Character:FindFirstChild("HumanoidRootPart");
 		local hook; hook = hookmetamethod(game, "__namecall", newcclosure(function(...)
-			if checkcaller() then return hook(...) end
-			local args = {...}
-			local method = string.lower(getnamecallmethod())
-			local self = args[1]
-			table.remove(args, 1)
-			if typeof(self) == "Instance" and method == "findfirstchild" and args[1] == "HumanoidRootPart" and Player.Character and Player.Character:FindFirstChild("LowerTorso") and self == Player.Character then
-				return Player.Character.LowerTorso
-			end
-			return hook(...)
-		end))
+			if checkcaller() then return hook(...); end;
+			local args = {...};
+			local method = string.lower(getnamecallmethod());
+			local self = args[1];
+			table.remove(args, 1);
+			if typeof(self) == "Instance" and method == "findfirstchild" and args[1] and type(args[1]) == "string" and args[1] == "HumanoidRootPart" and Player.Character and Player.Character.FindFirstChild(Player.Character, "LowerTorso") and self == Player.Character then
+				return Player.Character.LowerTorso;
+			end;
+			return hook(...);
+		end));
 		local hook; hook = hookmetamethod(game, "__index", newcclosure(function(...)
-			if checkcaller() then return hook(...) end
-			local self, index = ...
-			if typeof(self) == "Instance" and index == "HumanoidRootPart" and self == Player.Character then
-				return Player.Character:FindFirstChild("LowerTorso")
-			end
-			return hook(...)
-		end))
-		humanoid_root:Destroy()
+			if checkcaller() then  return hook(...); end;
+			local self, index = ...;
+			if typeof(self) == "Instance" and typeof(index) == "string" and index == "HumanoidRootPart" and self ==  char then
+				return char.FindFirstChild(char, "LowerTorso");
+			end;
+			return hook(...);
+		end));	
+		humanoid_root:Destroy();
 	else
 		if isfunctionhooked(getrawmetatable(game).__namecall) and isfunctionhooked(getrawmetatable(game).__index) then
-			restorefunction(getrawmetatable(game).__namecall)
-			restorefunction(getrawmetatable(game).__index)
-		end
-	end
-end
+			restorefunction(getrawmetatable(game).__namecall);
+			restorefunction(getrawmetatable(game).__index);			
+		end;
+	end;
+	return;
+end;
 
--- INFINITE SPRINT
-local toggle_run = function(active)
+local toggle_run = function(): ()
 	for _,v in getgc(true) do
 		if type(v) == "table" and rawget(v, "Sprint") and type(rawget(v, "Sprint")) == "number" then
-			v.Sprint = active and math.huge or 21
-		end
-	end
-end
+			v.Sprint = math.huge;
+		end;
+	end;
+	return;
+end;
 
--- NETWORK FUNCTIONS
 for _,v in getgc(false) do
 	if type(v) == "function" and islclosure(v) then
 		if debug.info(v, "n") == "FireServer" then
-			network.FireServer = v
+			network.FireServer = v;
 		elseif debug.info(v, "n") == "InvokeServer" then
-			network.InvokeServer = v
-		end
-	end
-end
+			network.InvokeServer = v;
+		end;
+	end;
+end;
 
--- INFINITE AMMO
-local toggle_infinite_ammo; toggle_infinite_ammo = @native function(enabled: boolean)
-	local LUA_GC = getgc(true)
-	local Network
-	local newluaclosure = newlclosure
-	for _,v in LUA_GC do
-		if type(v) == "table" then
-			if rawget(v, "InvokeServer") then
-				Network = v
-			elseif rawget(v, "_discharge") then
-				if not enabled then
-					restorefunction(rawget(v, "_discharge"))
-					break
-				end
-				local hook; hook = hookfunction(rawget(v, "_discharge"), newluaclosure(function(gun_settings)
-					Network:FireServer("setToolState", "Reload")
-					Network:FireServer("setToolState", "Reloaded")
-					gun_settings.Ammo = 999
-					hook(gun_settings)
-				end))
-			end
-		end
-	end
-end
+local decode_args;  decode_args = @native function(encoded: string, key: {number}, extra: number): string
+	local decoded: string = "";
+	local cut_off: number = #encoded;
+	if not extra then
+		cut_off = #encoded - key[5] ;
+	end;
+	for i = 1, cut_off do
+		for mod = 0, 3 do
+			if i % 4 == mod then
+				local char: string = string.sub(encoded, i, i);
+				local off_set: number = key[mod + 1];
+				local code: number = string.byte(char) - 32;
+				if extra then
+					off_set = -off_set;
+				end;
+				local original: number = (code - off_set) % 95 + 32;
+				decoded = decoded .. string.char(original);
+				break;
+			end;
+		end;
+	end;
+	return decoded;
+end;
 
--- UI LIBRARY
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/UI-Libs/main/discord%20lib.txt"))()
+local Library = loadstring(game:HttpGet"https://raw.githubusercontent.com/dawid-scripts/UI-Libs/main/discord%20lib.txt")()
+
 local Window = Library:Window("Discord Library")
 local Main = Window:Server("Main", "")
 local Weapons = Window:Server("Weapons", "")
@@ -129,40 +128,49 @@ local Teleport = Window:Server("Teleportation", "")
 local Doors = Window:Server("Doors", "")
 local Misc = Window:Server("Utilities", "")
 
--- Estados de botones toggles
-local statesToggle = {}
+-- TODOS LOS TOGGLE SE CONVIERTEN EN BUTTONS
 
--- FUNCION GENERICA PARA BOTON TOGGLE
-local function ButtonToggle(server, name, callback)
-	statesToggle[name] = false
-	server:Button(name, function()
-		statesToggle[name] = not statesToggle[name]
-		callback(statesToggle[name])
-		Library:Notification("Notification", name .. (statesToggle[name] and " ACTIVADO" or " DESACTIVADO"), "Okay!")
-	end)
-end
-
--- MAIN TOGGLES
-ButtonToggle(Main, "Fullbright", function(active)
-	if active then
-		local hook; hook = hookmetamethod(game, "__newindex", newcclosure(function(self, index, value)
-			if not checkcaller() and self == game:GetService("Lighting") then return end
-			hook(self, index, value)
-		end))
-	else
-		restorefunction(getrawmetatable(game).__newindex)
-	end
+Main:Button("Fullbright", function()
+	local hook; hook = hookmetamethod(game, "__newindex", newcclosure(function(...)
+		local self, index, value = ...
+		if not checkcaller() and self and typeof(self) == "Instance" and self == game:GetService("Lighting") then
+			return
+		end
+		hook(...)
+	end))
+	Library:Notification("Notification", "Now run IY full bright", "Okay!")
 end)
 
-Main:Button("Teleport to Testing Place", function()
+Main:Button("Teleport to testing place", function()
 	TeleportService:Teleport(4346713746, Player)
 end)
 
-ButtonToggle(Main, "Infinite Sprint", function(active)
-	toggle_run(active)
+Main:Button("Minimap spy", function()
 end)
 
-Main:Button("Remove Barriers", function()
+Main:Button("Trigger autofarm", function()
+	local send_count: number = 999999;
+	for _,v in getgc(false) do
+		if type(v) == "function" and debug.info(v, "n") == "_createBlood" then
+			local hook; hook = hookfunction(v, newlclosure(function(...)
+				for i = 1, send_count do
+					wait();
+					hook(...);
+				end;
+				return hook(...)
+			end));
+		end;
+	end;
+end)
+
+Main:Button("Get tool", function()
+end)
+
+Main:Button("Infinite sprint", function()
+	toggle_run();
+end)
+
+Main:Button("Remove barriers", function()
 	for _,v in workspace.Ignore:GetChildren() do
 		if tostring(v) == "Block" or tostring(v) == "CI" then
 			v:Destroy()
@@ -170,58 +178,106 @@ Main:Button("Remove Barriers", function()
 	end
 end)
 
-ButtonToggle(Main, "Disable Blinking", function(active)
+Main:Button("Disable blinking", function()
 	for _,v in getgc(false) do
-		if type(v) == "function" and islclosure(v) and (debug.info(v,"n") == "ToggleBlink" or debug.info(v,"n") == "UpdateBlink") then
-			if active then
-				hookfunction(v, function() end)
-			else
-				if isfunctionhooked(v) then restorefunction(v) end
-			end
+		if type(v) == "function" and islclosure(v) and (debug.info(v, "n") == "ToggleBlink" or debug.info(v, "n") == "UpdateBlink") then
+			hookfunction(v, function() end)
 		end
 	end
 end)
 
--- WEAPONS
-ButtonToggle(Weapons, "Infinite Ammo", function(active)
-	toggle_infinite_ammo(active)
+-- Weapons
+
+Weapons:Label("Firerate")
+Weapons:Button("Make guns automatic", function()
 end)
 
-ButtonToggle(Weapons, "Disable RPM", function(active)
-	if active then
-		local hook; hook = hookfunction(task.wait, newcclosure(function(time)
-			if checkcaller() then return hook(time) end
-			local caller = debug.info(3,"f")
-			if caller and debug.info(caller,"n") == "_activateDischarge" then time = nil end
-			return hook(time)
-		end))
-	else
-		if isfunctionhooked(task.wait) then restorefunction(task.wait) end
-	end
+Weapons:Button("Infinite ammo", function()
+	toggle_infinite_ammo(true);
 end)
 
--- TELEPORT
-local TP = Teleport:Dropdown("Teleport to Player", {}, function() end)
-TP:Button("TP to Player", function()
-	-- lógica de teleport a jugador
-end)
-TP:Dropdown("Teleport to Place", {}, function() end)
-TP:Button("TP to Place", function()
-	-- lógica de teleport a lugar
+Weapons:Button("Disable rpm", function()
+	local hook; hook = hookfunction(task.wait, newcclosure(function(...: number?): ()
+		if checkcaller() then return hook(...); end;
+		local time: number? = ...
+		local caller = debug.info(3, "f");
+		if caller and debug.info(caller, "n") == "_activateDischarge" then time = nil :: never; end;
+		return hook(time);
+	end));
 end)
 
--- DOORS
-Doors:Button("Open Keycard Door Nearest", function()
+Weapons:Label("Spread")
+Weapons:Button("No spread", function()
+end)
+
+Weapons:Label("Instant kill")
+Weapons:Button("Toogle instant kill", function()
+end)
+
+-- Moderation
+
+Moderation:Label("Moderation options")
+Moderation:Button("Randomize apperance", function()
+end)
+Moderation:Button("Moderator scan", function()
+end)
+Moderation:Button("Kick when moderator arrives", function()
+end)
+Moderation:Button("Notifier", function()
+end)
+Moderation:Button("Avoid moderator", function()
+end)
+
+Moderation:Label("Anti cheat options")
+Moderation:Button("Bypass server ac", function()
+	states.server_bypass = true;
+	server_bypass(true)
+end)
+Moderation:Button("Bypass client ac", function()
+end)
+
+-- DDoS
+
+DDoS:Label("Methods")
+DDoS:Button("Load character spam", function()
+	for i = 1, 20 do
+		network:FireServer("switchTeamMenu", "Janitor");	
+		network:FireServer("switchTeamMenu", "Janitor");
+		network:FireServer("switchTeamMenu", "Janitor");
+	end;
+end)
+
+-- Teleport
+
+local TP = Teleport:Dropdown("Teleport to player",{}, function(bool)
+	Teleport:Add()
+end)
+TP:Button("tp to player", function()
+	TP:Add("Option")
+end)
+TP:Dropdown("Teleport to place",{}, function(bool)
+	TP:Add()
+end)
+TP:Button("tp to place", function()
+	TP:Add("Option")
+end)
+
+-- Doors
+
+Doors:Label("Main")
+Doors:Button("Open keycard door nearest to you", function()
 	for _,v in CollectionService:GetTagged("Door") do
-		network.FireServer("interactWith","Door", v:GetAttribute("Id"), "Front")
-		network.FireServer("interactWith","Door", v:GetAttribute("Id"), "Back")
+		network:FireServer("interactWith","Door", v:GetAttribute("Id"), "Front")
+		network:FireServer("interactWith", "Door", v:GetAttribute("Id"), "Back")
 	end
 end)
 
-Doors:Button("Open All Keycard Doors", function()
-	if not Player.Character or not Player.Character:FindFirstChildWhichIsA("Tool") then return end
+Doors:Button("Open all keycard door", function()
+	if not Player.Character or not Player.Character:FindFirstChildWhichIsA("Tool") then
+		return
+	end
 	local Card = Player.Character:FindFirstChildWhichIsA("Tool")
-	for _,v in CollectionService:GetTagged("Door") do
+	for _, v in CollectionService:GetTagged("Door") do
 		for _, part in v:GetDescendants() do
 			if part:FindFirstChild("TouchInterest") then
 				firetouchinterest(Card.Handle, part, 0)
@@ -231,36 +287,36 @@ Doors:Button("Open All Keycard Doors", function()
 	end
 end)
 
-ButtonToggle(Doors, "Spam Teslas", function(active)
-	states.tesla_spam = active
+Doors:Button("Spam teslas", function()
+	states.tesla_spam = true
 end)
 
--- MODERATION
-ButtonToggle(Moderation, "Server Bypass", function(active)
-	states.server_bypass = active
-	server_bypass(active)
-end)
+-- Misc
 
--- DDoS
-DDoS:Button("Load Character Spam", function()
-	for i = 1, 20 do
-		network.FireServer("switchTeamMenu","Janitor")
+Misc:Label("Section 1")
+Misc:Label("Section 2")
+
+-- Character added
+
+Player.CharacterAdded:Connect(function(charec: Model): ()
+	local char = charec;
+	if states.server_bypass then
+		server_bypass()
+	end
+	if states.infinite_run then 
+		toggle_run()
 	end
 end)
 
--- AUTOMATICO AL REAPARECER
-Player.CharacterAdded:Connect(function(char)
-	if states.server_bypass then server_bypass(true) end
-	if statesToggle["Infinite Sprint"] then toggle_run(true) end
-end)
+-- PreRender
 
-RunService.PreRender:Connect(function()
-	if states.tesla_spam and Player and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-		local touchies = {} -- llenar con TouchTransmitters
-		for _,v in touchies do
-			firetouchinterest(Player.Character.HumanoidRootPart, v.Parent, 0)
-			wait()
-			firetouchinterest(Player.Character.HumanoidRootPart, v.Parent, 1)
-		end
-	end
-end)
+RunService.PreRender:Connect(function(deltaTimeRender: number) 
+	if states.tesla_spam and Player and Player.Character:FindFirstChild("HumanoidRootPart") then
+		for _,v: TouchTransmitter in touchies do
+			firetouchinterest(Player.Character.HumanoidRootPart, v.Parent, 0);
+			wait();
+			firetouchinterest(Player.Character.HumanoidRootPart, v.Parent, 1);
+		end;
+	end;
+	return;
+end);
