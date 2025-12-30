@@ -1,8 +1,3 @@
-afgsegsrhdhhzdth
-
-
-
-
 local plr = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 
@@ -68,7 +63,7 @@ mainFrame.Parent = screenGui
 
 -- Navigation Buttons
 local mainBtn = Instance.new("TextButton")
-mainBtn.Size = UDim2.new(0.25, 0, 0, 40)
+mainBtn.Size = UDim2.new(0.2, 0, 0, 40)
 mainBtn.Position = UDim2.new(0, 0, 0, 0)
 mainBtn.Text = "Main"
 mainBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
@@ -76,28 +71,28 @@ mainBtn.TextColor3 = Color3.new(1, 1, 1)
 mainBtn.Parent = mainFrame
 
 local lockersBtn = Instance.new("TextButton")
-lockersBtn.Size = UDim2.new(0.25, 0, 0, 40)
-lockersBtn.Position = UDim2.new(0.25, 0, 0, 0)
+lockersBtn.Size = UDim2.new(0.2, 0, 0, 40)
+lockersBtn.Position = UDim2.new(0.2, 0, 0, 0)
 lockersBtn.Text = "Lockers"
 lockersBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 lockersBtn.TextColor3 = Color3.new(1, 1, 1)
 lockersBtn.Parent = mainFrame
 
 local playersBtn = Instance.new("TextButton")
-playersBtn.Size = UDim2.new(0.25, 0, 0, 40)
-playersBtn.Position = UDim2.new(0.5, 0, 0, 0)
+playersBtn.Size = UDim2.new(0.2, 0, 0, 40)
+playersBtn.Position = UDim2.new(0.4, 0, 0, 0)
 playersBtn.Text = "Players"
 playersBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 playersBtn.TextColor3 = Color3.new(1, 1, 1)
 playersBtn.Parent = mainFrame
 
-local locationsBtn = Instance.new("TextButton")
-locationsBtn.Size = UDim2.new(0.25, 0, 0, 40)
-locationsBtn.Position = UDim2.new(0.75, 0, 0, 0)
-locationsBtn.Text = "Locations"
-locationsBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-locationsBtn.TextColor3 = Color3.new(1, 1, 1)
-locationsBtn.Parent = mainFrame
+local placesBtn = Instance.new("TextButton")
+placesBtn.Size = UDim2.new(0.2, 0, 0, 40)
+placesBtn.Position = UDim2.new(0.6, 0, 0, 0)
+placesBtn.Text = "Places"
+placesBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+placesBtn.TextColor3 = Color3.new(1, 1, 1)
+placesBtn.Parent = mainFrame
 
 -- Pages
 local mainPage = Instance.new("Frame")
@@ -123,17 +118,17 @@ playersPage.Visible = false
 playersPage.CanvasSize = UDim2.new(0,0,0,0)
 playersPage.Parent = mainFrame
 
-local locationsPage = Instance.new("ScrollingFrame")
-locationsPage.Size = UDim2.new(1, 0, 1, -40)
-locationsPage.Position = UDim2.new(0, 0, 0, 40)
-locationsPage.BackgroundTransparency = 1
-locationsPage.Visible = false
-locationsPage.CanvasSize = UDim2.new(0,0,0,0)
-locationsPage.Parent = mainFrame
+local placesPage = Instance.new("ScrollingFrame")
+placesPage.Size = UDim2.new(1, 0, 1, -40)
+placesPage.Position = UDim2.new(0, 0, 0, 40)
+placesPage.BackgroundTransparency = 1
+placesPage.Visible = false
+placesPage.CanvasSize = UDim2.new(0,0,0,0)
+placesPage.Parent = mainFrame
 
--- Main page button
+-- Main page buttons
 local instantBtn = Instance.new("TextButton")
-instantBtn.Size = UDim2.new(1, -20, 0, 40)
+instantBtn.Size = UDim2.new(0.48, 0, 0, 40)
 instantBtn.Position = UDim2.new(0, 10, 0, 20)
 instantBtn.BackgroundColor3 = Color3.fromRGB(45,45,45)
 instantBtn.TextColor3 = Color3.new(1,1,1)
@@ -145,6 +140,48 @@ instantBtn.MouseButton1Click:Connect(function()
             v.HoldDuration = 0
         end
     end
+end)
+
+local infAmmoBtn = Instance.new("TextButton")
+infAmmoBtn.Size = UDim2.new(0.48, 0, 0, 40)
+infAmmoBtn.Position = UDim2.new(0.5, 10, 0, 20)
+infAmmoBtn.BackgroundColor3 = Color3.fromRGB(45,45,45)
+infAmmoBtn.TextColor3 = Color3.new(1,1,1)
+infAmmoBtn.Text = "Infinite Ammo"
+infAmmoBtn.Parent = mainPage
+
+infAmmoBtn.MouseButton1Click:Connect(function()
+    local LUA_GC = getgc(true)
+    local Network
+    local newluaclosure = newlclosure
+    for _,v in LUA_GC do
+        if type(v) == "table" then
+            if rawget(v, "InvokeServer") then
+                Network = v
+            elseif rawget(v, "_discharge") then
+                local hook; hook = hookfunction(rawget(v, "_discharge"), newluaclosure(function(gun_settings)
+                    if Network then
+                        Network:FireServer("setToolState","Reload")
+                        Network:FireServer("setToolState","Reloaded")
+                    end
+                    gun_settings.Ammo = 999
+                    hook(gun_settings)
+                end))
+            end
+        end
+    end
+
+    local GC = getgc(true)
+    local get = rawget
+    local set = rawset
+    for _,Table in next, GC do
+        if type(Table) == 'table' and get(Table,"Ammo") and get(Table,"Rpm") then
+            set(Table,"Rpm",math.huge)
+            set(Table,"Spread",0)
+            set(Table,"Automatic",true)
+        end
+    end
+    print("Infinite Ammo activado!")
 end)
 
 -- Lockers
@@ -172,7 +209,7 @@ for _, data in ipairs(lockers) do
 end
 lockersPage.CanvasSize = UDim2.new(0,0,0,yPos)
 
--- Locations
+-- Locations (Places)
 local locations = {
     ["Tower"]=CFrame.new(548,557,848),
     ["CI Base"]=CFrame.new(830,500,875),
@@ -211,14 +248,14 @@ for name, cf in pairs(locations) do
     btn.BackgroundColor3 = Color3.fromRGB(45,45,45)
     btn.TextColor3 = Color3.new(1,1,1)
     btn.Text = name
-    btn.Parent = locationsPage
+    btn.Parent = placesPage
 
     btn.MouseButton1Click:Connect(function()
         safeTeleport(cf)
     end)
     yPos = yPos + 45
 end
-locationsPage.CanvasSize = UDim2.new(0,0,0,yPos)
+placesPage.CanvasSize = UDim2.new(0,0,0,yPos)
 
 -- Players
 local function updatePlayers()
@@ -254,25 +291,25 @@ mainBtn.MouseButton1Click:Connect(function()
     mainPage.Visible = true
     lockersPage.Visible = false
     playersPage.Visible = false
-    locationsPage.Visible = false
+    placesPage.Visible = false
 end)
 lockersBtn.MouseButton1Click:Connect(function()
     mainPage.Visible = false
     lockersPage.Visible = true
     playersPage.Visible = false
-    locationsPage.Visible = false
+    placesPage.Visible = false
 end)
 playersBtn.MouseButton1Click:Connect(function()
     mainPage.Visible = false
     lockersPage.Visible = false
     playersPage.Visible = true
-    locationsPage.Visible = false
+    placesPage.Visible = false
 end)
-locationsBtn.MouseButton1Click:Connect(function()
+placesBtn.MouseButton1Click:Connect(function()
     mainPage.Visible = false
     lockersPage.Visible = false
     playersPage.Visible = false
-    locationsPage.Visible = true
+    placesPage.Visible = true
 end)
 
 -- Toggle GUI
@@ -280,3 +317,5 @@ toggleButton.MouseButton1Click:Connect(function()
     mainFrame.Visible = not mainFrame.Visible
     toggleButton.Text = mainFrame.Visible and "close gui" or "open gui"
 end)
+
+print("GUI lista y lista para usar")
