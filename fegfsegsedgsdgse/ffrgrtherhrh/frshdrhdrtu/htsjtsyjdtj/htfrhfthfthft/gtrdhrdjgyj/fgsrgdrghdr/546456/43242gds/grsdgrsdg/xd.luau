@@ -5,6 +5,7 @@ local Player = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local CollectionService = game:GetService("CollectionService")
 local TeleportService = game:GetService("TeleportService")
+local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local states = {
@@ -16,8 +17,9 @@ local states = {
 
 -- ScreenGui
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "CustomUI"
+screenGui.Name = "MobileGUI"
 screenGui.Parent = Player:WaitForChild("PlayerGui")
+screenGui.ResetOnSpawn = false  -- No se borra al morir
 
 -- Main Frame
 local mainFrame = Instance.new("Frame")
@@ -25,6 +27,7 @@ mainFrame.Size = UDim2.new(0, 300, 0, 600)
 mainFrame.Position = UDim2.new(0, 50, 0, 50)
 mainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 mainFrame.BorderSizePixel = 0
+mainFrame.Active = true  -- Necesario para arrastrar
 mainFrame.Parent = screenGui
 
 -- UI Layout
@@ -33,10 +36,46 @@ layout.Padding = UDim.new(0, 5)
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Parent = mainFrame
 
--- Botón Toggle
+-- Función para arrastrar la GUI (compatible con móvil)
+do
+    local dragging = false
+    local dragInput, dragStart, startPos
+
+    local function update(input)
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+
+    mainFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = mainFrame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    mainFrame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+end
+
+-- Crear Botón Toggle
 local function CreateToggleButton(text, key, callback)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -10, 0, 40)
+    btn.Size = UDim2.new(1, -10, 0, 50)
     btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.SourceSans
@@ -51,10 +90,10 @@ local function CreateToggleButton(text, key, callback)
     end)
 end
 
--- Botón simple
+-- Crear Botón Simple
 local function CreateButton(text, callback)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -10, 0, 40)
+    btn.Size = UDim2.new(1, -10, 0, 50)
     btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.SourceSans
@@ -64,7 +103,7 @@ local function CreateButton(text, callback)
     btn.MouseButton1Click:Connect(callback)
 end
 
--- FUNCIONES PRINCIPALES
+-- FUNCIONES
 
 -- Fullbright
 CreateToggleButton("Fullbright", "fullbright", function(state)
@@ -85,7 +124,6 @@ local function toggleRun(state)
         end
     end
 end
-
 CreateToggleButton("Infinite Sprint", "infiniteSprint", toggleRun)
 
 -- Remove barriers
@@ -102,49 +140,22 @@ CreateToggleButton("Tesla Spam", "teslaSpam", function() end)
 
 -- Server Bypass
 CreateToggleButton("Bypass Server AC", "serverBypass", function(state)
-    if state then
-        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-            local humanoid_root = Player.Character:FindFirstChild("HumanoidRootPart")
-            humanoid_root:Destroy()
-        end
+    if state and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = Player.Character:FindFirstChild("HumanoidRootPart")
+        hrp:Destroy()
     end
 end)
 
--- Teleport buttons
+-- Teleport
 CreateButton("Teleport to Test Place", function()
     TeleportService:Teleport(4346713746, Player)
-end)
-
--- Weapons
-CreateButton("Infinite Ammo", function()
-    for _,v in pairs(getgc(true)) do
-        if type(v) == "table" and rawget(v, "_discharge") and rawget(v, "InvokeServer") then
-            local Network = v
-            local hook; hook = hookfunction(rawget(v, "_discharge"), newcclosure(function(gun)
-                Network:FireServer("setToolState", "Reload")
-                Network:FireServer("setToolState", "Reloaded")
-                gun.Ammo = 999
-                hook(gun)
-            end))
-        end
-    end
-end)
-
-CreateButton("Disable RPM", function()
-    local hook; hook = hookfunction(task.wait, newcclosure(function(...: number?)
-        if checkcaller() then return hook(...) end
-        local t = ...
-        local caller = debug.info(3, "f")
-        if caller and debug.info(caller, "n") == "_activateDischarge" then t = nil end
-        return hook(t)
-    end))
 end)
 
 -- Doors
 CreateButton("Open nearest keycard door", function()
     for _,v in pairs(CollectionService:GetTagged("Door")) do
         network.FireServer("interactWith","Door", v:GetAttribute("Id"), "Front")
-        network.FireServer("interactWith", "Door", v:GetAttribute("Id"), "Back")
+        network.FireServer("interactWith","Door", v:GetAttribute("Id"), "Back")
     end
 end)
 
@@ -161,6 +172,7 @@ CreateButton("Open all keycard doors", function()
     end
 end)
 
+-- PreRender loop for Tesla spam
 RunService.PreRender:Connect(function()
     if states.teslaSpam and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
         for _,v in pairs(Workspace:GetDescendants()) do
@@ -172,3 +184,4 @@ RunService.PreRender:Connect(function()
         end
     end
 end)
+
