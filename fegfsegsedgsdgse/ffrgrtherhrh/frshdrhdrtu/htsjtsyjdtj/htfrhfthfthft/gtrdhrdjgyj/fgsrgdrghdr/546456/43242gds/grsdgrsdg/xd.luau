@@ -130,7 +130,7 @@ local Misc = Window:Server("Utilities", "")
 
 -- TODOS LOS TOGGLE SE CONVIERTEN EN BUTTONS
 
-Main:Button("Fullbright", function()
+--[[Main:Button("Fullbright", function()
 	local hook; hook = hookmetamethod(game, "__newindex", newcclosure(function(...)
 		local self, index, value = ...
 		if not checkcaller() and self and typeof(self) == "Instance" and self == game:GetService("Lighting") then
@@ -139,7 +139,7 @@ Main:Button("Fullbright", function()
 		hook(...)
 	end))
 	Library:Notification("Notification", "Now run IY full bright", "Okay!")
-end)
+end)]]
 
 Main:Button("Teleport to testing place", function()
 	TeleportService:Teleport(4346713746, Player)
