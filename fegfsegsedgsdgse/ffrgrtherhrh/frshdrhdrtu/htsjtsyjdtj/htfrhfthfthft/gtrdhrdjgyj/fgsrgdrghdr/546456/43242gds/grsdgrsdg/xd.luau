@@ -117,7 +117,7 @@ local decode_args;  decode_args = @native function(encoded: string, key: {number
 	return decoded;
 end;
 
-local Library = loadstring(game:HttpGet"https://raw.githubusercontent.com/dawid-scripts/UI-Libs/main/discord%20lib.txt")()
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/UI-Libs/main/discord%20lib.txt"))()
 
 local Window = Library:Window("Discord Library")
 local Main = Window:Server("Main", "")
@@ -247,7 +247,7 @@ DDoS:Button("Load character spam", function()
 	end;
 end)
 
--- Teleport
+--[[ Teleport
 
 local TP = Teleport:Dropdown("Teleport to player",{}, function(bool)
 	Teleport:Add()
@@ -260,7 +260,7 @@ TP:Dropdown("Teleport to place",{}, function(bool)
 end)
 TP:Button("tp to place", function()
 	TP:Add("Option")
-end)
+end)]]
 
 -- Doors
 
