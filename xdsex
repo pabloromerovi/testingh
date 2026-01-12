@@ -331,56 +331,105 @@ helpful_tab:CreateButton({
 		return loadstring(game:HttpGet("https://raw.githubusercontent.com/LightStrikeVex/dingaling/refs/heads/main/script.luau"))();	
 	end;
 });
+local minimapIndexHook
+local minimapFuncHook
+
+local function getPlayerFromIcon(icon)
+	return Players:FindFirstChild(icon.Name)
+end
+
+local function hookMinimap()
+	if not minimapIndexHook then
+		minimapIndexHook = hookmetamethod(game, "__index", newcclosure(function(self, index)
+			if not checkcaller()
+				and typeof(self) == "Instance"
+				and self:IsA("BoolValue")
+				and self.Name == "Foundation"
+				and index == "Value"
+			then
+				return true
+			end
+			return minimapIndexHook(self, index)
+		end))
+	end
+
+	for _, v in getgc(false) do
+		if type(v) == "function"
+			and islclosure(v)
+			and debug.info(v, "n") == "UpdateMinimap"
+		then
+			for _, up in debug.getupvalues(v) do
+				if typeof(up) == "Instance" and up:IsA("Instance") then
+					if not minimapFuncHook then
+						minimapFuncHook = hookfunction(up, newcclosure(function(self, class, props)
+							if class == "ImageLabel"
+								and type(props) == "table"
+								and rawget(props, "Name")
+							then
+								local plr = getPlayerFromIcon(props)
+								if plr then
+									props.ImageColor3 = plr.TeamColor.Color
+								end
+							end
+							return minimapFuncHook(self, class, props)
+						end))
+					end
+					break
+				end
+			end
+		end
+	end
+
+	-- recolor ya existentes
+	local map = Player.PlayerGui:FindFirstChild("HudGui")
+	if map and map:FindFirstChild("#map") then
+		for _, icon in map["#map"].Players:GetChildren() do
+			local plr = getPlayerFromIcon(icon)
+			if plr and icon:IsA("ImageLabel") then
+				icon.ImageColor3 = plr.TeamColor.Color
+			end
+		end
+	end
+end
+
+local function unhookMinimap()
+	if minimapIndexHook then
+		restorefunction(minimapIndexHook)
+		minimapIndexHook = nil
+	end
+
+	if minimapFuncHook then
+		restorefunction(minimapFuncHook)
+		minimapFuncHook = nil
+	end
+
+	-- restaurar colores normales
+	local map = Player.PlayerGui:FindFirstChild("HudGui")
+	if map and map:FindFirstChild("#map") then
+		for _, icon in map["#map"].Players:GetChildren() do
+			if icon:IsA("ImageLabel") then
+				icon.ImageColor3 =
+					icon.Name == Player.Name
+					and Color3.fromRGB(85, 255, 0)
+					or Color3.fromRGB(0, 0, 255)
+			end
+		end
+	end
+end
+
 helpful_tab:CreateToggle({
-	Name = "Minimap spy (buggy for now)  ";
-	Description = "Shows everyone on the minimap regardless of team, colors changes based on team color.";
-	Callback = @native function(toggle: boolean): ()
-		if toggle then
-			local hook; hook = hookmetamethod(game, "__index", newcclosure(function(...)
-				if checkcaller() then  return hook(...); end;
-				local self, index = ...;
-				if self and typeof(self) == "Instance" and tostring(self) == "Foundation" and self.ClassName == "BoolValue" and index == "Value" then
-					return true;
-				end;
-				return hook(...);
-			end));
-			for _,v in getgc(false) do
-				if type(v) == "function" and islclosure(v) and debug.info(v, "n") == "UpdateMinimap" then
-					local up_values = debug.getupvalues(v);
-					local new_instance = up_values[4];
-					local hook; hook = hookfunction(new_instance, newlclosure(function(self: any, class: string, prop: {[string]: any})
-						if class == "ImageLabel" and rawget(prop, "ImageColor3") and rawget(prop, "AnchorPoint") and rawget(prop, "ZIndex") then
-							rawset(prop, "ImageColor3", Players[rawget(prop, "Name")].TeamColor.Color);
-						end;
-						return hook(self, class, prop);
-					end));
-				end;
-			end;
-			for _,v in Player.PlayerGui.HudGui["#map"].Players:GetChildren() do
-				if Players:FindFirstChild(tostring(v)) then
-					v.ImageColor3 = Players[tostring(v)].TeamColor.Color;
-				end;
-			end;
+	Name = "Minimap Spy (Fixed)";
+	Description = "Shows all players on minimap with team colors";
+	Callback = function(state)
+		if state then
+			hookMinimap()
 		else
-			if isfunctionhooked(getrawmetatable(game).__index) then
-				restorefunction(getrawmetatable(game).__index);
-			end;
-			for _,v in getgc(false) do
-				if type(v) == "function" and islclosure(v) and debug.info(v, "n") == "UpdateMinimap" then
-					local up_values = debug.getupvalues(v);
-					local new_instance = up_values[4];
-					if isfunctionhooked(new_instance) then restorefunction(new_instance); end;
-				end;
-			end;
-			for _,v in Player.PlayerGui.HudGui["#map"].Players:GetChildren() do
-				if v:IsA("ImageLabel") and Players:FindFirstChild(tostring(v)) then
-					v.ImageColor3 = tostring(v) == tostring(Player) and Color3.fromRGB(85, 255, 0) or Color3.fromRGB(0, 0, 255);
-				end;
-			end;
-		end;
-		return;
-	end,	
-});
+			unhookMinimap()
+		end
+	end
+})
+
+
 helpful_section:CreateToggle({
 	Name = "respawn character";
 	Callback = @native function(_: unknown): ()
